@@ -1,0 +1,1173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>Block by Block Fitness</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Block by Block">
+<meta name="theme-color" content="#2C6E9B">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<style>
+  html, body { margin: 0; padding: 0; background: #EAF1F5; }
+
+  #app-root {
+    --bg: #EAF1F5;
+    --card: #F8FBFD;
+    --ink: #12293A;
+    --ink-soft: #5A7386;
+    --blue: #2C6E9B;
+    --blue-deep: #123A56;
+    --blue-mid: #4E92BC;
+    --blue-pale: #9CC5DC;
+    --tint: #DCE9F1;
+    --aqua: #2E8C9E;
+    --alert: #9C4B4B;
+    --line: #C9DAE5;
+    --line-soft: #E2ECF3;
+
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+    background: var(--bg);
+    max-width: 560px;
+    margin: 0 auto;
+    padding: calc(env(safe-area-inset-top, 0px) + 30px) 20px calc(env(safe-area-inset-bottom, 0px) + 60px);
+    box-sizing: border-box;
+  }
+  #app-root * { box-sizing: border-box; }
+
+  .top-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+  h1 {
+    font-family: "Iowan Old Style", Palatino, Georgia, serif;
+    font-weight: 400; font-size: 30px; line-height: 1.15;
+    margin: 0 0 5px; letter-spacing: -0.015em;
+  }
+  .subtitle { color: var(--ink-soft); font-size: 14px; margin: 0 0 24px; line-height: 1.45; }
+
+  .guide-btn {
+    background: transparent; color: var(--blue-deep);
+    border: 1px solid var(--line); border-radius: 999px;
+    padding: 8px 14px; font-size: 13px; font-weight: 600;
+    cursor: pointer; white-space: nowrap; margin-top: 3px;
+  }
+  .guide-btn:hover { background: var(--tint); }
+
+  /* Twelve weeks across, three sessions down: one quilt block per session.
+     Blocks are pieced in the week's colour, which deepens week by week. */
+  .weeks { margin-bottom: 28px; }
+  .weeks-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    grid-template-rows: repeat(3, auto);
+    grid-auto-flow: column;
+    gap: 4px;
+  }
+  .quilt { display: block; width: 100%; aspect-ratio: 1; }
+  .weeks-caption { display: flex; justify-content: space-between; font-size: 12px; color: var(--ink-soft); margin-top: 10px; }
+
+  .card {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: 12px; padding: 22px 20px; margin-bottom: 18px;
+  }
+  .session-head { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 6px; }
+  .session-count { font-size: 12.5px; color: var(--blue-deep); background: var(--tint); padding: 3px 10px; border-radius: 999px; }
+  .session-time { font-size: 12.5px; color: var(--ink-soft); }
+  h2 { font-family: "Iowan Old Style", Palatino, Georgia, serif; font-weight: 400; font-size: 22px; margin: 10px 0 6px; }
+
+  .exercise { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line-soft); }
+  .exercise:first-of-type { border-top: none; }
+  .exercise input[type="checkbox"] { margin-top: 3px; width: 19px; height: 19px; accent-color: var(--blue); flex-shrink: 0; }
+  .exercise-body { flex: 1; min-width: 0; }
+  .exercise-name-row { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; cursor: pointer; }
+  .exercise-name { font-weight: 600; font-size: 15.5px; }
+  .exercise-name:hover { text-decoration: underline; text-decoration-style: dotted; }
+  .exercise-sets { font-size: 13px; color: var(--blue); }
+  .info-dot {
+    font-size: 11px; color: var(--ink-soft); border: 1px solid var(--line); border-radius: 50%;
+    width: 16px; height: 16px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .exercise-cue { color: var(--ink-soft); font-size: 13.5px; line-height: 1.45; margin-top: 3px; }
+  .exercise.checked .exercise-name { text-decoration: line-through; color: var(--ink-soft); }
+  .short-badge {
+    font-size: 11px; color: var(--aqua); border: 1px solid var(--aqua);
+    border-radius: 999px; padding: 1px 8px;
+  }
+  .short-banner { font-size: 13px; color: var(--aqua); margin: 0 0 14px; }
+
+  .carry {
+    background: var(--tint); border-radius: 10px; padding: 13px 15px; margin: 4px 0 18px;
+  }
+  .carry-label { font-size: 12.5px; color: var(--blue-deep); font-weight: 600; margin-bottom: 4px; }
+  .carry-note { font-size: 14px; line-height: 1.5; color: var(--ink); font-family: "Iowan Old Style", Palatino, Georgia, serif; }
+
+  .short-toggle {
+    display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: var(--ink-soft);
+    margin: 18px 0 0; padding-top: 16px; border-top: 1px solid var(--line-soft); cursor: pointer;
+  }
+  .short-toggle input { accent-color: var(--aqua); width: 18px; height: 18px; flex-shrink: 0; }
+
+  .detail { background: white; border: 1px solid var(--line-soft); border-radius: 9px; padding: 13px 14px; margin-top: 10px; }
+  .detail p { margin: 0; font-size: 13.5px; line-height: 1.6; }
+  .detail .part { margin-top: 11px; padding-top: 11px; border-top: 1px solid var(--line-soft); }
+  .detail .part-label { display: block; font-size: 12.5px; font-weight: 600; color: var(--aqua); margin-bottom: 3px; }
+  .detail .part-label.watch { color: var(--alert); }
+
+  .notes-block { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--line-soft); }
+  .notes-block label { font-size: 13px; color: var(--ink-soft); display: block; margin-bottom: 7px; }
+  .notes-textarea {
+    width: 100%; min-height: 64px; font-family: inherit; font-size: 14px; padding: 10px 12px;
+    border-radius: 8px; border: 1px solid var(--line); resize: vertical; background: white; color: var(--ink);
+  }
+
+  .actions { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+  button {
+    font-family: inherit; font-size: 14px; font-weight: 600; border-radius: 9px;
+    padding: 12px 16px; border: none; cursor: pointer; transition: opacity 0.15s;
+  }
+  button:hover { opacity: 0.88; }
+  button:active { opacity: 0.7; }
+  button:disabled { opacity: 0.5; cursor: default; }
+  button:focus-visible { outline: 2px solid var(--blue-deep); outline-offset: 2px; }
+  .btn-primary { background: var(--blue); color: white; flex: 1; min-width: 150px; }
+  .btn-ghost { background: transparent; color: var(--ink-soft); border: 1px solid var(--line); }
+  .btn-text { background: none; color: var(--blue-deep); padding: 6px 4px; font-weight: 500; text-decoration: underline; }
+
+  .history { display: flex; flex-direction: column; }
+  .history-row-wrap { border-top: 1px solid var(--line-soft); }
+  .history-row-wrap:first-child { border-top: none; }
+  .history-row { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; padding: 10px 0; color: var(--ink-soft); cursor: pointer; }
+  .history-tag { color: var(--ink); font-weight: 600; }
+  .history-detail { font-size: 13px; color: var(--ink); padding: 0 0 12px; line-height: 1.55; }
+  .history-detail .no-note { color: var(--ink-soft); }
+  .history-detail-actions { display: flex; gap: 16px; margin-top: 6px; }
+  .history-detail-actions button { padding: 0; font-size: 12.5px; }
+  .empty-history { font-size: 13px; color: var(--ink-soft); line-height: 1.5; }
+
+  .history-form { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--line-soft); }
+  .form-row { margin-bottom: 13px; }
+  .form-row label { display: block; font-size: 12.5px; color: var(--ink-soft); margin-bottom: 5px; }
+  .form-row select, .form-row input[type="date"] {
+    width: 100%; font-family: inherit; font-size: 14px; padding: 9px 10px;
+    border-radius: 8px; border: 1px solid var(--line); background: white; color: var(--ink);
+  }
+
+  .done-state { text-align: center; padding: 30px 10px; }
+  .footer-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+  .footer-row strong { font-size: 16px; font-family: "Iowan Old Style", Palatino, Georgia, serif; font-weight: 400; }
+
+  .settings-panel { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--line-soft); font-size: 13px; }
+  .settings-panel select {
+    font-family: inherit; font-size: 13px; padding: 7px 8px; border-radius: 7px;
+    border: 1px solid var(--line); background: white; max-width: 100%;
+  }
+
+  .loading { color: var(--ink-soft); font-size: 14px; padding: 20px 0; }
+
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(18, 41, 58, 0.5);
+    display: flex; align-items: flex-start; justify-content: center;
+    padding: 36px 14px; z-index: 100; overflow-y: auto;
+  }
+  .modal-box { background: var(--bg); border-radius: 14px; max-width: 540px; width: 100%; padding: 24px 22px 30px; border: 1px solid var(--line); }
+  .modal-head { display: flex; justify-content: space-between; align-items: center; }
+  .modal-head h2 { margin: 0; }
+  .modal-close { background: none; border: none; font-size: 24px; line-height: 1; color: var(--ink-soft); cursor: pointer; padding: 2px 6px; }
+  .guide-search {
+    width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--line);
+    font-size: 14px; font-family: inherit; margin: 16px 0 20px; background: white;
+  }
+  .guide-category {
+    font-family: "Iowan Old Style", Palatino, Georgia, serif; font-size: 18px; color: var(--blue-deep);
+    margin: 26px 0 6px; padding-bottom: 6px; border-bottom: 1px solid var(--line);
+  }
+  .guide-category:first-of-type { margin-top: 0; }
+  .guide-item { padding: 14px 0; border-top: 1px solid var(--line-soft); }
+  .guide-item:first-of-type { border-top: none; }
+  .guide-item-name { font-weight: 600; font-size: 15px; margin-bottom: 6px; }
+  .guide-empty { font-size: 13px; color: var(--ink-soft); padding: 10px 0; }
+
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div id="app-root"></div>
+<script>
+(function() {
+
+  // ---------- Movement library ----------
+  // cue   = one line, always visible
+  // how   = setup and execution, revealed on tap
+  // feel  = what it should feel like, and where
+  // watch = the signs form has slipped
+  const EX = {
+    shoulderRolls: {
+      name: "Shoulder rolls", cat: "Warm-up",
+      cue: "Big slow circles, backward then forward.",
+      how: "Stand or sit tall with your arms hanging loose. Lift both shoulders up toward your ears, roll them back and squeeze the shoulder blades together, then let them drop. Ten backward, then ten forward. Slow enough that each circle takes a couple of seconds.",
+      feel: "A gentle stretch across the top of the shoulders and upper back. Nothing sharp anywhere.",
+      watch: "If your head pokes forward or your chin lifts, you're using your neck. Keep your chin level and let the shoulders do the work."
+    },
+    armCircles: {
+      name: "Arm circles", cat: "Warm-up",
+      cue: "Arms out to the sides, small circles each direction.",
+      how: "Arms straight out to the sides at shoulder height. Draw small circles about the size of a dinner plate, ten forward and ten back. If holding your arms up gets tiring before ten, lower them and finish the count.",
+      feel: "Warmth around the shoulder joint, and a burn in the shoulder muscles by the end. That burn is fine.",
+      watch: "Shoulders creeping up toward your ears means the muscle is tired. Drop them back down or stop the set."
+    },
+    march: {
+      name: "Standing march", cat: "Warm-up",
+      cue: "Hand on the chair, lift one knee then the other.",
+      how: "Hand resting on a chair back. Lift one knee toward your chest as high as is comfortable, put it down, lift the other. Comfortable is the whole instruction here — hip height is plenty, and lower is fine.",
+      feel: "Work at the front of the hip on the lifting leg, and the standing leg working to hold you steady.",
+      watch: "Leaning back to get the knee higher. If you're tipping backward, the knee is going too high."
+    },
+    hipCircles: {
+      name: "Standing hip circles", cat: "Warm-up",
+      cue: "Knee up, draw a slow circle with it.",
+      how: "Hand on the chair. Lift one knee to about hip height, then draw a slow circle with it: out to the side, around, and back down. Do the full count in one direction, then reverse, then switch legs.",
+      feel: "A stretch and a working sensation deep in the hip, especially as the knee travels out to the side.",
+      watch: "Your torso twisting or your standing hip swaying. Make the circle smaller and keep your chest facing forward."
+    },
+
+    sitStand: {
+      name: "Sit-to-stand", cat: "Legs and hips",
+      cue: "Chair against a wall. Stand up, sit down slowly.",
+      how: "Chair against a wall so it can't slide. Sit toward the front edge, feet flat and pulled back slightly so your heels are under your knees. Lean your chest forward over your toes, press through your heels, and stand all the way up. Sit back down with control instead of dropping. Use the armrests or a push off your thighs as much as you need at first.",
+      feel: "Thighs and glutes doing the work. Standing up should feel like effort in the legs.",
+      watch: "Landing hard on the seat means the lowering half got away from you. If you can't control the descent, raise the seat with a firm cushion."
+    },
+    sideLegRaise: {
+      name: "Standing side leg raise", cat: "Legs and hips",
+      cue: "Hand on the chair, lift one leg out to the side.",
+      how: "Hand on the chair, stand tall. Lift one leg straight out to the side, toes pointing forward rather than up, then lower it slowly. The leg won't go far — six inches is a real rep.",
+      feel: "The outside of the hip on the lifting leg, and the outside of the standing hip working to keep you level.",
+      watch: "Leaning your upper body away from the lifting leg, or the toes rotating up toward the ceiling. Both mean the leg has drifted in front of you instead of out to the side."
+    },
+    stepUp: {
+      name: "Step-ups", cat: "Legs and hips",
+      cue: "Whole foot on the step, press through that heel.",
+      how: "A stair, or a low step, with a rail or wall within reach. Place one whole foot on the step, heel included. Press through that heel to stand up on it, then step back down slowly, letting the working leg lower you. Finish one side before switching.",
+      feel: "The thigh and glute of the leg on the step. On the way down, that same leg should be working.",
+      watch: "Pushing off the bottom foot to get up there, or thumping down on the way back. Both mean the step is too high. Go lower."
+    },
+    balance: {
+      name: "Single-leg balance", cat: "Legs and hips",
+      cue: "Fingertips on the chair, stand on one leg.",
+      how: "Fingertips on the chair back. Stand on one leg with a soft bend in that knee, the other foot lifted just off the floor. Hold, then switch. As it gets easier, use one fingertip, then none.",
+      feel: "Constant small adjustments in the foot, ankle, and hip. It should feel busy rather than still.",
+      watch: "Gripping the chair to hold yourself up. If you need a real grip that's fine, but keep working toward fingertips only."
+    },
+
+    wallAngels: {
+      name: "Wall angels", cat: "Upper body",
+      cue: "Back to the wall, slide your arms up and down.",
+      how: "Stand with your back and the back of your head against a wall, feet a few inches out from it. Put your arms up against the wall in a goalpost shape, elbows bent, backs of the hands touching the wall. Slide the arms up overhead and back down, keeping as much contact as you can.",
+      feel: "Work between the shoulder blades and a stretch across the front of the chest. Most people find one spot in the range where it gets hard. That spot is the point of the exercise.",
+      watch: "Your lower back arching away from the wall, or your hands and elbows leaving it. Shorten the range so contact stays. Half the range done properly beats the full range faked."
+    },
+    wallPushup: {
+      name: "Wall push-up", cat: "Upper body",
+      cue: "Hands on the wall, lower your chest, press away.",
+      how: "Hands flat on the wall, a little wider than your shoulders and at about chest height. Walk your feet back until your arms are straight and you're leaning in. Body in one line from head to heels. Bend your elbows and bring your chest toward the wall, then press away.",
+      feel: "Chest, shoulders, and the backs of the arms. Also your middle working to hold the line.",
+      watch: "Hips sagging toward the wall or sticking back behind you. Squeeze your glutes to hold the line. To make it easier, step your feet closer to the wall."
+    },
+    counterPushup: {
+      name: "Counter push-up", cat: "Upper body",
+      cue: "Same as the wall version, hands on the counter.",
+      how: "The same movement as the wall push-up, with your hands on the edge of a kitchen counter instead of the wall. Feet further back, so the angle is steeper and it's harder.",
+      feel: "The same places as the wall version, noticeably more of it.",
+      watch: "Same as the wall. If the line breaks in the middle, go back to the wall for another few weeks. There's no rush."
+    },
+    counterPlank: {
+      name: "Counter plank", cat: "Upper body",
+      cue: "Forearms on the counter, body in one line, hold.",
+      how: "Forearms on the counter, elbows under your shoulders, feet walked back so your body makes one straight line. Hold and breathe normally.",
+      feel: "A steady brace across the whole midsection, and some work in the shoulders.",
+      watch: "Holding your breath, or the hips dropping and the lower back scooping. When the line breaks the set is over, even if the timer isn't. Walking your feet closer to the counter makes it easier."
+    },
+
+    figure4: {
+      name: "Seated figure-4", cat: "Stretches",
+      cue: "Ankle across the opposite knee, lean forward.",
+      how: "Sit toward the front of the chair, feet flat. Lift one ankle and rest it across the opposite knee, letting that knee fall open to the side. Sit tall, then hinge forward from the hips until you feel the stretch. Hold and breathe.",
+      feel: "A broad stretch deep in the buttock and the outside of the crossed hip.",
+      watch: "Rounding your upper back to get lower. Keep the chest open and hinge from the hips instead. If getting the ankle onto the knee is hard, rest it on the shin lower down, or put the foot on a low stool with the knee falling open. Pinching at the front of the hip means back off."
+    },
+    hamstring: {
+      name: "Standing hamstring stretch", cat: "Stretches",
+      cue: "Heel on a low step, flat back, hinge forward.",
+      how: "Heel on a low step or a bottom stair, that leg straight and the toes pointed up. Standing leg soft. Hinge forward from the hips with a flat back until you feel it. Hold.",
+      feel: "The back of the raised thigh, from behind the knee up toward the sit bone.",
+      watch: "A rounded back and a reach with the hands. That moves the stretch into the lower back. Keep the back flat, and go lower with the step rather than curling over. The floor is a fine height to start."
+    },
+    doorwayChest: {
+      name: "Doorway chest stretch", cat: "Stretches",
+      cue: "Forearm on the frame, step through, turn away.",
+      how: "Stand in a doorway. Put one forearm flat against the frame with the elbow bent to about a right angle. Step through with the same-side foot and turn your body away from that arm until you feel the stretch. The arm position moves higher as the weeks go on — the session line tells you where it should be.",
+      feel: "A wide, open stretch across the front of the chest and the front of the shoulder.",
+      watch: "A pinch or a sharp point at the very front of the shoulder joint. That means the arm is too high or you've turned too far. Lower the arm and turn less. This should always feel broad, never pointed."
+    }
+  };
+
+  // short = keep this one on a short day. shortAmount defaults to the full amount.
+  const mv = (key, amount, short, shortAmount) => ({
+    key, amount, short: !!short, shortAmount: shortAmount || amount
+  });
+
+  // ---------- Program: four blocks of three weeks ----------
+  const BLOCKS = [
+    {
+      weeks: [1, 2, 3], minutes: "about 8 minutes",
+      note: "The same five movements every session for three weeks. That's on purpose — right now the point is showing up, not the workout.",
+      list: [
+        mv("shoulderRolls", "10 back, 10 forward"),
+        mv("sitStand", "2 sets of 8"),
+        mv("wallPushup", "2 sets of 8"),
+        mv("figure4", "30 sec per side"),
+        mv("doorwayChest", "30 sec per side, elbow at hip height")
+      ]
+    },
+    {
+      weeks: [4, 5, 6], minutes: "about 15 minutes",
+      note: "Three new movements, and the doorway stretch moves up to shoulder height.",
+      list: [
+        mv("shoulderRolls", "10 back, 10 forward", true),
+        mv("march", "20 total"),
+        mv("wallAngels", "2 sets of 10"),
+        mv("sitStand", "2 sets of 10", true, "1 set of 10"),
+        mv("wallPushup", "2 sets of 12", true, "1 set of 12"),
+        mv("figure4", "45 sec per side", true, "30 sec per side"),
+        mv("hamstring", "30 sec per side"),
+        mv("doorwayChest", "30 sec per side, elbow at shoulder height", true)
+      ]
+    },
+    {
+      weeks: [7, 8, 9], minutes: "about 20 minutes",
+      note: "Four more added. This is the biggest jump in the program — take the first week of it slowly.",
+      list: [
+        mv("shoulderRolls", "10 each way", true),
+        mv("armCircles", "10 each way"),
+        mv("march", "30 total"),
+        mv("hipCircles", "6 per side, each direction"),
+        mv("wallAngels", "2 sets of 10"),
+        mv("sitStand", "3 sets of 10", true, "1 set of 10"),
+        mv("sideLegRaise", "2 sets of 10 per side"),
+        mv("wallPushup", "3 sets of 12", true, "1 set of 12"),
+        mv("counterPlank", "2 holds of 20 sec"),
+        mv("figure4", "45 sec per side", true),
+        mv("hamstring", "45 sec per side", true, "30 sec per side"),
+        mv("doorwayChest", "45 sec per side, elbow at shoulder height", true)
+      ]
+    },
+    {
+      weeks: [10, 11, 12], minutes: "about 25 minutes",
+      note: "Push-ups move to the counter and step-ups come in. The side leg raise drops out — the step-ups cover that hip now.",
+      list: [
+        mv("shoulderRolls", "10 each way", true),
+        mv("armCircles", "10 each way"),
+        mv("march", "30 total"),
+        mv("hipCircles", "8 per side, each direction"),
+        mv("wallAngels", "3 sets of 12"),
+        mv("sitStand", "3 sets of 12, pause halfway down", true, "1 set of 12"),
+        mv("stepUp", "2 sets of 8 per side"),
+        mv("counterPushup", "3 sets of 10", true, "1 set of 10"),
+        mv("counterPlank", "3 holds of 30 sec"),
+        mv("balance", "3 holds of 20 sec per side"),
+        mv("figure4", "60 sec per side", true, "45 sec per side"),
+        mv("hamstring", "45 sec per side", true, "30 sec per side"),
+        mv("doorwayChest", "45 sec per side, elbow above shoulder", true)
+      ]
+    }
+  ];
+
+  const PER_WEEK = 3;
+  const WEEKS = 12;
+  const SESSIONS = [];
+  BLOCKS.forEach(block => {
+    block.weeks.forEach(week => {
+      for (let n = 1; n <= PER_WEEK; n++) {
+        SESSIONS.push({ week, n, minutes: block.minutes, note: block.note, list: block.list });
+      }
+    });
+  });
+  const TOTAL = SESSIONS.length;
+
+  // ---------- Congratulations ----------
+  const MILESTONES = {
+    1: "That's the hardest one done. Everything after this is easier.",
+    9: "Three weeks. That's not a streak any more, that's a habit.",
+    18: "Halfway. Eighteen sessions that didn't happen by accident.",
+    27: "Twenty-seven done. You're stronger than when you started, and you can probably feel it.",
+    36: "All thirty-six. You built this three days at a time."
+  };
+  const CHEERS = [
+    "Another one in the bank.",
+    "Showing up is most of the work, and you showed up.",
+    "Your hips will thank you tomorrow.",
+    "That's a real one. Well done.",
+    "Nobody was making you do that. You did it anyway.",
+    "Quietly getting stronger.",
+    "This is what it looks like when it's working.",
+    "Add it to the pile.",
+    "The chair never stood a chance.",
+    "Good. Now go enjoy the rest of your day.",
+    "Steady wins this one.",
+    "Consistency looks boring from the outside. It isn't."
+  ];
+
+  const KEY = "block-by-block-progress";
+  const root = document.getElementById("app-root");
+
+  let state = { index: 0, history: [] };
+  let checkedSet = new Set();
+  let expandedSet = new Set();
+  let expandedHistory = new Set();
+  let loaded = false;
+  let guideOpen = false;
+  let guideQuery = "";
+  let noteDraft = "";
+  let shortMode = false;
+  let isCompleting = false;
+  let showAllHistory = false;
+
+  let historyFormOpen = false;
+  let formEditingId = null;
+  let formDraft = { sessionIndex: 0, date: "", note: "" };
+
+  function genId() { return "h_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8); }
+
+  function esc(str) {
+    return String(str).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  }
+
+  function sessionLabel(s) { return "Week " + s.week + ", session " + s.n; }
+
+  // ---------- Quilt blocks ----------
+  // Each is drawn on a 12x12 grid in three fabrics: dark, mid, light.
+  // Traditional pieced blocks, simplified enough to read at thumbnail size.
+  const QUILTS = [
+    { name: "Four Patch", draw: (d, m, l) => `
+      <rect width="12" height="12" fill="${l}"/>
+      <rect x="0" y="0" width="6" height="6" fill="${d}"/><rect x="6" y="6" width="6" height="6" fill="${d}"/>
+      <rect x="6" y="0" width="6" height="6" fill="${m}"/><rect x="0" y="6" width="6" height="6" fill="${m}"/>` },
+
+    { name: "Nine Patch", draw: (d, m, l) => `
+      <rect width="12" height="12" fill="${l}"/>
+      <rect x="0" y="0" width="4" height="4" fill="${d}"/><rect x="8" y="0" width="4" height="4" fill="${d}"/>
+      <rect x="4" y="4" width="4" height="4" fill="${d}"/>
+      <rect x="0" y="8" width="4" height="4" fill="${d}"/><rect x="8" y="8" width="4" height="4" fill="${d}"/>
+      <rect x="4" y="0" width="4" height="4" fill="${m}"/><rect x="0" y="4" width="4" height="4" fill="${m}"/>
+      <rect x="8" y="4" width="4" height="4" fill="${m}"/><rect x="4" y="8" width="4" height="4" fill="${m}"/>` },
+
+    { name: "Pinwheel", draw: (d, m, l) => `
+      <rect width="12" height="12" fill="${l}"/>
+      <polygon points="0,0 6,0 6,6" fill="${d}"/><polygon points="12,0 12,6 6,6" fill="${d}"/>
+      <polygon points="12,12 6,12 6,6" fill="${d}"/><polygon points="0,12 0,6 6,6" fill="${d}"/>
+      <polygon points="0,0 6,6 0,6" fill="${m}"/><polygon points="12,12 6,6 12,6" fill="${m}"/>` },
+
+    { name: "Hourglass", draw: (d, m, l) => `
+      <polygon points="0,0 12,0 6,6" fill="${d}"/><polygon points="0,12 12,12 6,6" fill="${d}"/>
+      <polygon points="0,0 6,6 0,12" fill="${l}"/><polygon points="12,0 6,6 12,12" fill="${m}"/>` },
+
+    { name: "Flying Geese", draw: (d, m, l) => `
+      <rect width="12" height="12" fill="${l}"/>
+      <polygon points="0,4 6,0 12,4" fill="${d}"/>
+      <polygon points="0,8 6,4 12,8" fill="${m}"/>
+      <polygon points="0,12 6,8 12,12" fill="${d}"/>` },
+
+    { name: "Rail Fence", draw: (d, m, l) => `
+      <rect x="0" y="0" width="4" height="12" fill="${d}"/>
+      <rect x="4" y="0" width="4" height="12" fill="${m}"/>
+      <rect x="8" y="0" width="4" height="12" fill="${l}"/>` },
+
+    { name: "Broken Dishes", draw: (d, m, l) => `
+      <rect width="12" height="12" fill="${l}"/>
+      <polygon points="0,0 6,0 0,6" fill="${d}"/><polygon points="6,0 12,0 6,6" fill="${m}"/>
+      <polygon points="0,6 6,6 0,12" fill="${m}"/><polygon points="6,6 12,6 6,12" fill="${d}"/>` },
+
+    { name: "Shoo-Fly", draw: (d, m, l) => `
+      <rect width="12" height="12" fill="${l}"/>
+      <polygon points="0,0 4,0 0,4" fill="${d}"/><polygon points="8,0 12,0 12,4" fill="${d}"/>
+      <polygon points="0,8 0,12 4,12" fill="${d}"/><polygon points="12,8 12,12 8,12" fill="${d}"/>
+      <rect x="4" y="4" width="4" height="4" fill="${d}"/>
+      <rect x="4" y="0" width="4" height="4" fill="${m}"/><rect x="4" y="8" width="4" height="4" fill="${m}"/>
+      <rect x="0" y="4" width="4" height="4" fill="${m}"/><rect x="8" y="4" width="4" height="4" fill="${m}"/>` },
+
+    { name: "Churn Dash", draw: (d, m, l) => `
+      <rect width="12" height="12" fill="${l}"/>
+      <polygon points="0,0 4,0 0,4" fill="${d}"/><polygon points="8,0 12,0 12,4" fill="${d}"/>
+      <polygon points="0,8 0,12 4,12" fill="${d}"/><polygon points="12,8 12,12 8,12" fill="${d}"/>
+      <rect x="4" y="0" width="4" height="2" fill="${m}"/><rect x="4" y="10" width="4" height="2" fill="${m}"/>
+      <rect x="0" y="4" width="2" height="4" fill="${m}"/><rect x="10" y="4" width="2" height="4" fill="${m}"/>
+      <rect x="4" y="4" width="4" height="4" fill="${d}"/>` },
+
+    { name: "Friendship Star", draw: (d, m, l) => `
+      <rect width="12" height="12" fill="${l}"/>
+      <rect x="4" y="4" width="4" height="4" fill="${d}"/>
+      <polygon points="4,0 8,0 4,4" fill="${d}"/><polygon points="8,4 12,4 12,8" fill="${d}"/>
+      <polygon points="8,8 8,12 4,12" fill="${d}"/><polygon points="0,4 4,8 0,8" fill="${d}"/>
+      <polygon points="8,0 8,4 4,4" fill="${m}"/><polygon points="4,8 8,8 4,12" fill="${m}"/>` },
+
+    { name: "Sawtooth Star", draw: (d, m, l) => `
+      <rect width="12" height="12" fill="${l}"/>
+      <rect x="4" y="4" width="4" height="4" fill="${d}"/>
+      <polygon points="4,4 6,0 8,4" fill="${d}"/><polygon points="8,4 12,6 8,8" fill="${d}"/>
+      <polygon points="4,8 6,12 8,8" fill="${d}"/><polygon points="4,4 0,6 4,8" fill="${d}"/>
+      <rect x="5" y="5" width="2" height="2" fill="${m}"/>` },
+
+    { name: "Ohio Star", draw: (d, m, l) => `
+      <rect width="12" height="12" fill="${l}"/>
+      <rect x="4" y="4" width="4" height="4" fill="${d}"/>
+      <polygon points="4,0 8,0 6,4" fill="${d}"/><polygon points="4,12 8,12 6,8" fill="${d}"/>
+      <polygon points="0,4 0,8 4,6" fill="${d}"/><polygon points="12,4 12,8 8,6" fill="${d}"/>
+      <polygon points="4,0 6,4 4,4" fill="${m}"/><polygon points="8,0 8,4 6,4" fill="${m}"/>
+      <polygon points="4,8 6,8 4,12" fill="${m}"/><polygon points="8,8 8,12 6,8" fill="${m}"/>` },
+
+    { name: "Log Cabin", draw: (d, m, l) => `
+      <rect width="12" height="12" fill="${l}"/>
+      <rect x="3" y="1" width="6" height="2" fill="${m}"/><rect x="9" y="1" width="2" height="8" fill="${m}"/>
+      <rect x="3" y="9" width="8" height="2" fill="${d}"/><rect x="1" y="1" width="2" height="10" fill="${d}"/>
+      <rect x="5" y="3" width="2" height="2" fill="${m}"/><rect x="7" y="3" width="2" height="4" fill="${m}"/>
+      <rect x="5" y="7" width="4" height="2" fill="${d}"/><rect x="3" y="3" width="2" height="6" fill="${d}"/>
+      <rect x="5" y="5" width="2" height="2" fill="${l}"/>` },
+
+    { name: "Bear Paw", draw: (d, m, l) => `
+      <rect width="12" height="12" fill="${l}"/>
+      <rect x="4" y="4" width="8" height="8" fill="${m}"/>
+      <polygon points="4,0 8,0 4,4" fill="${d}"/><polygon points="8,0 12,0 8,4" fill="${d}"/>
+      <polygon points="0,4 4,4 0,8" fill="${d}"/><polygon points="0,8 4,8 0,12" fill="${d}"/>
+      <rect x="6" y="6" width="4" height="4" fill="${d}"/>` },
+
+    { name: "Missouri Star", draw: (d, m, l) => `
+      <rect width="12" height="12" fill="${l}"/>
+      <polygon points="6,6 6,0 12,0" fill="${d}"/><polygon points="6,6 12,0 12,6" fill="${m}"/>
+      <polygon points="6,6 12,6 12,12" fill="${d}"/><polygon points="6,6 12,12 6,12" fill="${m}"/>
+      <polygon points="6,6 6,12 0,12" fill="${d}"/><polygon points="6,6 0,12 0,6" fill="${m}"/>
+      <polygon points="6,6 0,6 0,0" fill="${d}"/><polygon points="6,6 0,0 6,0" fill="${m}"/>` },
+
+    { name: "Square in a Square", draw: (d, m, l) => `
+      <rect width="12" height="12" fill="${l}"/>
+      <polygon points="6,0 12,6 6,12 0,6" fill="${d}"/>
+      <polygon points="6,3 9,6 6,9 3,6" fill="${m}"/>` }
+  ];
+
+  // Deterministic, so the quilt looks the same every time she opens it.
+  // 7 and 16 share no factors, so the first sixteen blocks are all different.
+  function quiltFor(i) { return QUILTS[(i * 7) % QUILTS.length]; }
+
+  // Fabrics for a given week: the dark deepens from pale blue to navy across
+  // the twelve weeks, with two lighter shades blended from it.
+  function fabrics(weekIdx) {
+    const from = [118, 168, 199], to = [18, 58, 86];
+    const t = WEEKS === 1 ? 1 : weekIdx / (WEEKS - 1);
+    const dark = from.map((v, i) => Math.round(v + (to[i] - v) * t));
+    const blend = (c, amt) => c.map(v => Math.round(v + (255 - v) * amt));
+    const rgb = c => "rgb(" + c.join(",") + ")";
+    return { d: rgb(dark), m: rgb(blend(dark, 0.45)), l: rgb(blend(dark, 0.86)) };
+  }
+
+  function renderWeeks() {
+    let cells = "";
+    for (let i = 0; i < TOTAL; i++) {
+      const week = Math.floor(i / PER_WEEK);
+      if (i < state.index) {
+        const f = fabrics(week);
+        const q = quiltFor(i);
+        cells += `<svg class="quilt" viewBox="0 0 12 12" role="img" aria-label="${q.name}"><title>${q.name}</title>${q.draw(f.d, f.m, f.l)}</svg>`;
+      } else if (i === state.index) {
+        cells += `<svg class="quilt" viewBox="0 0 12 12" aria-label="Up next"><rect x="0.6" y="0.6" width="10.8" height="10.8" fill="var(--bg)" stroke="var(--blue)" stroke-width="1.2"/></svg>`;
+      } else {
+        cells += `<svg class="quilt" viewBox="0 0 12 12" aria-hidden="true"><rect x="0.6" y="0.6" width="10.8" height="10.8" fill="var(--card)" stroke="var(--line)" stroke-width="0.8"/></svg>`;
+      }
+    }
+    return `<div class="weeks">
+      <div class="weeks-grid">${cells}</div>
+      <div class="weeks-caption"><span>Week 1</span><span>Week ${WEEKS}</span></div>
+    </div>`;
+  }
+
+  // The most recent note she wrote, surfaced at the top of today's session so
+  // last time's observation is in front of her before she starts.
+  function renderCarry() {
+    const withNotes = state.history.filter(h => h.note && h.note.trim());
+    if (!withNotes.length) return "";
+    const last = withNotes.sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+    const when = new Date(last.date).toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" });
+    return `
+      <div class="carry">
+        <div class="carry-label">From your last session, ${when}</div>
+        <div class="carry-note">${esc(last.note.trim())}</div>
+      </div>
+    `;
+  }
+
+  function render() {
+    if (!loaded) { root.innerHTML = `<div class="loading">Loading…</div>`; return; }
+
+    const idx = state.index;
+    const done = idx >= TOTAL;
+    const logged = state.history.length;
+
+    let html = `
+      <div class="top-row">
+        <div>
+          <h1>${done ? "Twelve weeks done" : esc(sessionLabel(SESSIONS[idx]))}</h1>
+          <p class="subtitle">${logged} ${logged === 1 ? "session" : "sessions"} logged</p>
+        </div>
+        <button class="guide-btn" id="btn-open-guide">How-to</button>
+      </div>
+      ${renderWeeks()}
+    `;
+
+    if (done) {
+      html += `
+        <div class="card done-state">
+          <h2>That's all thirty-six.</h2>
+          <p class="subtitle">Your history stays here. Start again at week 1, or jump to whichever block you'd like to keep repeating.</p>
+          <button class="btn-primary" id="btn-restart">Start again at week 1</button>
+        </div>
+      `;
+    } else {
+      const s = SESSIONS[idx];
+      const displayList = shortMode ? s.list.filter(it => it.short) : s.list;
+      const hasShort = s.list.some(it => it.short) && s.list.some(it => !it.short);
+      html += `
+        <div class="card">
+          <div class="session-head">
+            <span class="session-count">Session ${idx + 1} of ${TOTAL}</span>
+            <span class="session-time">${shortMode ? "about 8 minutes" : esc(s.minutes)}</span>
+          </div>
+          <h2>Today's routine${shortMode ? ", short version" : ""}</h2>
+          ${shortMode
+            ? `<p class="short-banner">The short version. Doing this counts as doing it.</p>`
+            : `<p class="subtitle">${esc(s.note)}</p>`}
+          ${renderCarry()}
+          <div id="exercise-list">
+      `;
+      displayList.forEach(item => {
+        const i = s.list.indexOf(item);
+        const def = EX[item.key];
+        const isChecked = checkedSet.has(i);
+        const isOpen = expandedSet.has(i);
+        const amount = shortMode ? item.shortAmount : item.amount;
+        html += `
+          <div class="exercise ${isChecked ? "checked" : ""}">
+            <input type="checkbox" data-i="${i}" ${isChecked ? "checked" : ""} aria-label="${esc(def.name)} done">
+            <div class="exercise-body">
+              <div class="exercise-name-row" data-expand="${i}">
+                <span class="exercise-name">${esc(def.name)}</span>
+                <span class="exercise-sets">${esc(amount)}</span>
+                ${!shortMode && item.short ? '<span class="short-badge">short day</span>' : ""}
+                <span class="info-dot">i</span>
+              </div>
+              ${isOpen ? `
+                <div class="detail">
+                  <p>${esc(def.how)}</p>
+                  <div class="part"><span class="part-label">You should feel</span><p>${esc(def.feel)}</p></div>
+                  <div class="part"><span class="part-label watch">Watch for</span><p>${esc(def.watch)}</p></div>
+                </div>
+              ` : `<div class="exercise-cue">${esc(def.cue)}</div>`}
+            </div>
+          </div>
+        `;
+      });
+      html += `
+          </div>
+          ${hasShort ? `
+            <label class="short-toggle">
+              <input type="checkbox" id="short-check" ${shortMode ? "checked" : ""}>
+              Short on time or energy today? Show the short version.
+            </label>
+          ` : ""}
+          <div class="notes-block">
+            <label for="notes-textarea">Anything worth remembering?</label>
+            <textarea class="notes-textarea" id="notes-textarea" placeholder="Left hip was tight today. Stood up without hands for the first time.">${esc(noteDraft)}</textarea>
+          </div>
+          <div class="actions">
+            <button class="btn-primary" id="btn-complete" ${isCompleting ? "disabled" : ""}>Log this session</button>
+            <button class="btn-ghost" id="btn-skip" ${isCompleting ? "disabled" : ""}>Skip this one</button>
+          </div>
+        </div>
+      `;
+    }
+
+    html += `
+      <div class="card">
+        <div class="footer-row">
+          <strong>History</strong>
+          <div style="display:flex; gap:14px;">
+            <button class="btn-text" id="btn-add-history">Add a past session</button>
+            <button class="btn-text" id="btn-settings-toggle">Jump to a week</button>
+          </div>
+        </div>
+        <div id="settings-panel" style="display:none;" class="settings-panel">
+          <label for="jump-select">Go to</label>
+          <select id="jump-select"></select>
+          <button class="btn-text" id="btn-jump">Go</button>
+          <br><br>
+          <button class="btn-text" id="btn-reset-all" style="color:var(--alert);">Clear everything and start over</button>
+        </div>
+        ${historyFormOpen ? renderHistoryForm() : ""}
+        <div class="history" style="margin-top:14px;">${renderHistory()}</div>
+        ${state.history.length > 10 ? `<button class="btn-text" id="btn-toggle-history" style="margin-top:10px;">${showAllHistory ? "Show recent only" : "Show all " + state.history.length}</button>` : ""}
+      </div>
+    `;
+
+    if (guideOpen) html += renderGuideModal();
+
+    root.innerHTML = html;
+    attachHandlers();
+  }
+
+  function renderHistory() {
+    if (state.history.length === 0) {
+      return `<p class="empty-history">Nothing here yet. Log a session above and it'll show up.</p>`;
+    }
+    const sorted = state.history.slice().sort((a, b) => new Date(b.date) - new Date(a.date));
+    const items = showAllHistory ? sorted : sorted.slice(0, 10);
+    return items.map(h => {
+      const s = SESSIONS[h.sessionIndex];
+      const dateStr = new Date(h.date).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+      const isOpen = expandedHistory.has(h.id);
+      return `
+        <div class="history-row-wrap">
+          <div class="history-row" data-hid="${h.id}">
+            <span><span class="history-tag">Week ${s.week}</span> session ${s.n}${h.mode === "short" ? ' <span class="short-badge">short</span>' : ""}</span>
+            <span style="white-space:nowrap;">${dateStr}</span>
+          </div>
+          ${isOpen ? `
+            <div class="history-detail">
+              ${h.note ? esc(h.note) : `<span class="no-note">No notes.</span>`}
+              <div class="history-detail-actions">
+                <button class="btn-text" data-edit-id="${h.id}">Edit</button>
+                <button class="btn-text" data-delete-id="${h.id}" style="color:var(--alert);">Delete</button>
+              </div>
+            </div>
+          ` : ""}
+        </div>
+      `;
+    }).join("");
+  }
+
+  function renderGuideModal() {
+    const q = guideQuery.trim().toLowerCase();
+    const cats = ["Warm-up", "Legs and hips", "Upper body", "Stretches"];
+    const entries = Object.entries(EX);
+    let any = false, body = "";
+    cats.forEach(cat => {
+      const items = entries.filter(([k, d]) => d.cat === cat && (q === "" || d.name.toLowerCase().includes(q)));
+      if (!items.length) return;
+      any = true;
+      body += `<div class="guide-category">${cat}</div>`;
+      items.forEach(([k, d]) => {
+        body += `
+          <div class="guide-item">
+            <div class="guide-item-name">${esc(d.name)}</div>
+            <div class="detail">
+              <p>${esc(d.how)}</p>
+              <div class="part"><span class="part-label">You should feel</span><p>${esc(d.feel)}</p></div>
+              <div class="part"><span class="part-label watch">Watch for</span><p>${esc(d.watch)}</p></div>
+            </div>
+          </div>
+        `;
+      });
+    });
+    if (!any) body = `<p class="guide-empty">Nothing matches "${esc(guideQuery)}". Try a shorter word.</p>`;
+
+    return `
+      <div class="modal-overlay" id="guide-overlay">
+        <div class="modal-box">
+          <div class="modal-head">
+            <h2>How to do everything</h2>
+            <button class="modal-close" id="btn-close-guide" aria-label="Close">&times;</button>
+          </div>
+          <input type="text" class="guide-search" id="guide-search" placeholder="Search movements" value="${esc(guideQuery)}">
+          ${body}
+        </div>
+      </div>
+    `;
+  }
+
+  function attachHandlers() {
+    root.querySelectorAll('#exercise-list input[type="checkbox"]').forEach(cb => {
+      cb.addEventListener("change", e => {
+        const i = parseInt(e.target.getAttribute("data-i"), 10);
+        if (e.target.checked) checkedSet.add(i); else checkedSet.delete(i);
+        render();
+      });
+    });
+
+    root.querySelectorAll(".exercise-name-row").forEach(row => {
+      row.addEventListener("click", () => {
+        const i = parseInt(row.getAttribute("data-expand"), 10);
+        if (expandedSet.has(i)) expandedSet.delete(i); else expandedSet.add(i);
+        render();
+      });
+    });
+
+    const notes = document.getElementById("notes-textarea");
+    if (notes) notes.addEventListener("input", e => { noteDraft = e.target.value; });
+
+    const shortCheck = document.getElementById("short-check");
+    if (shortCheck) {
+      shortCheck.addEventListener("change", e => {
+        shortMode = e.target.checked;
+        checkedSet = new Set();
+        render();
+      });
+    }
+
+    const btnComplete = document.getElementById("btn-complete");
+    if (btnComplete) btnComplete.addEventListener("click", completeSession);
+
+    const btnSkip = document.getElementById("btn-skip");
+    if (btnSkip) btnSkip.addEventListener("click", () => { if (!isCompleting) advance(); });
+
+    const btnRestart = document.getElementById("btn-restart");
+    if (btnRestart) btnRestart.addEventListener("click", () => { state.index = 0; checkedSet = new Set(); save(); render(); });
+
+    const toggleBtn = document.getElementById("btn-settings-toggle");
+    const panel = document.getElementById("settings-panel");
+    if (toggleBtn && panel) {
+      toggleBtn.addEventListener("click", () => {
+        panel.style.display = panel.style.display === "none" ? "block" : "none";
+        if (panel.style.display === "block") populateJumpSelect();
+      });
+    }
+
+    const btnJump = document.getElementById("btn-jump");
+    if (btnJump) {
+      btnJump.addEventListener("click", () => {
+        state.index = parseInt(document.getElementById("jump-select").value, 10);
+        checkedSet = new Set(); expandedSet = new Set();
+        save(); render();
+      });
+    }
+
+    const btnReset = document.getElementById("btn-reset-all");
+    if (btnReset) {
+      btnReset.addEventListener("click", () => {
+        if (confirm("This deletes every logged session and returns you to week 1. There's no undo.")) {
+          state = { index: 0, history: [] };
+          checkedSet = new Set();
+          save(); render();
+        }
+      });
+    }
+
+    const btnOpenGuide = document.getElementById("btn-open-guide");
+    if (btnOpenGuide) btnOpenGuide.addEventListener("click", () => { guideOpen = true; guideQuery = ""; render(); });
+
+    const btnCloseGuide = document.getElementById("btn-close-guide");
+    if (btnCloseGuide) btnCloseGuide.addEventListener("click", () => { guideOpen = false; render(); });
+
+    const overlay = document.getElementById("guide-overlay");
+    if (overlay) overlay.addEventListener("click", e => { if (e.target === overlay) { guideOpen = false; render(); } });
+
+    const guideSearch = document.getElementById("guide-search");
+    if (guideSearch) {
+      guideSearch.addEventListener("input", e => {
+        guideQuery = e.target.value;
+        render();
+        const el = document.getElementById("guide-search");
+        if (el) { el.focus(); el.selectionStart = el.selectionEnd = el.value.length; }
+      });
+    }
+
+    root.querySelectorAll(".history-row").forEach(row => {
+      row.addEventListener("click", () => {
+        const id = row.getAttribute("data-hid");
+        if (expandedHistory.has(id)) expandedHistory.delete(id); else expandedHistory.add(id);
+        render();
+      });
+    });
+
+    const btnToggleHistory = document.getElementById("btn-toggle-history");
+    if (btnToggleHistory) btnToggleHistory.addEventListener("click", () => { showAllHistory = !showAllHistory; render(); });
+
+    root.querySelectorAll("[data-edit-id]").forEach(btn => {
+      btn.addEventListener("click", ev => { ev.stopPropagation(); openEditHistoryForm(btn.getAttribute("data-edit-id")); });
+    });
+    root.querySelectorAll("[data-delete-id]").forEach(btn => {
+      btn.addEventListener("click", ev => { ev.stopPropagation(); deleteHistoryEntry(btn.getAttribute("data-delete-id")); });
+    });
+
+    const btnAdd = document.getElementById("btn-add-history");
+    if (btnAdd) btnAdd.addEventListener("click", openAddHistoryForm);
+
+    const btnSaveForm = document.getElementById("btn-save-history-form");
+    if (btnSaveForm) btnSaveForm.addEventListener("click", saveHistoryForm);
+
+    const btnCancelForm = document.getElementById("btn-cancel-history-form");
+    if (btnCancelForm) btnCancelForm.addEventListener("click", closeHistoryForm);
+  }
+
+  function openAddHistoryForm() {
+    formEditingId = null;
+    formDraft = {
+      sessionIndex: state.index < TOTAL ? state.index : TOTAL - 1,
+      date: new Date().toISOString().slice(0, 10),
+      mode: "full",
+      note: ""
+    };
+    historyFormOpen = true;
+    render();
+  }
+
+  function openEditHistoryForm(id) {
+    const entry = state.history.find(h => h.id === id);
+    if (!entry) return;
+    formEditingId = id;
+    formDraft = {
+      sessionIndex: entry.sessionIndex,
+      date: entry.date.slice(0, 10),
+      mode: entry.mode === "short" ? "short" : "full",
+      note: entry.note || ""
+    };
+    historyFormOpen = true;
+    render();
+  }
+
+  function closeHistoryForm() { historyFormOpen = false; formEditingId = null; render(); }
+
+  function saveHistoryForm() {
+    const sessEl = document.getElementById("form-session");
+    const dateEl = document.getElementById("form-date");
+    const modeEl = document.getElementById("form-mode");
+    const noteEl = document.getElementById("form-note");
+    if (sessEl) formDraft.sessionIndex = parseInt(sessEl.value, 10);
+    if (dateEl) formDraft.date = dateEl.value;
+    if (modeEl) formDraft.mode = modeEl.value;
+    if (noteEl) formDraft.note = noteEl.value;
+    if (!formDraft.date) { alert("Pick a date first."); return; }
+    const iso = new Date(formDraft.date + "T12:00:00").toISOString();
+
+    if (formEditingId) {
+      const i = state.history.findIndex(h => h.id === formEditingId);
+      if (i !== -1) {
+        state.history[i] = Object.assign({}, state.history[i], {
+          sessionIndex: formDraft.sessionIndex, date: iso, mode: formDraft.mode, note: formDraft.note.trim()
+        });
+      }
+    } else {
+      state.history.push({
+        id: genId(), sessionIndex: formDraft.sessionIndex, date: iso, mode: formDraft.mode, note: formDraft.note.trim()
+      });
+    }
+    save();
+    closeHistoryForm();
+  }
+
+  function deleteHistoryEntry(id) {
+    if (!confirm("Delete this session from your history? There's no undo.")) return;
+    state.history = state.history.filter(h => h.id !== id);
+    save(); render();
+  }
+
+  function renderHistoryForm() {
+    return `
+      <div class="history-form">
+        <div class="form-row">
+          <label for="form-session">Which session</label>
+          <select id="form-session">
+            ${SESSIONS.map((s, i) => `<option value="${i}" ${i === formDraft.sessionIndex ? "selected" : ""}>${sessionLabel(s)}</option>`).join("")}
+          </select>
+        </div>
+        <div class="form-row">
+          <label for="form-date">Date</label>
+          <input type="date" id="form-date" value="${formDraft.date}">
+        </div>
+        <div class="form-row">
+          <label for="form-mode">Full or short</label>
+          <select id="form-mode">
+            <option value="full" ${formDraft.mode === "full" ? "selected" : ""}>Full session</option>
+            <option value="short" ${formDraft.mode === "short" ? "selected" : ""}>Short version</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label for="form-note">Notes</label>
+          <textarea class="notes-textarea" id="form-note" style="min-height:52px;">${esc(formDraft.note)}</textarea>
+        </div>
+        <div class="actions">
+          <button class="btn-primary" id="btn-save-history-form">${formEditingId ? "Save changes" : "Add session"}</button>
+          <button class="btn-ghost" id="btn-cancel-history-form">Cancel</button>
+        </div>
+      </div>
+    `;
+  }
+
+  function populateJumpSelect() {
+    const sel = document.getElementById("jump-select");
+    if (!sel) return;
+    sel.innerHTML = SESSIONS.map((s, i) =>
+      `<option value="${i}" ${i === state.index ? "selected" : ""}>${sessionLabel(s)}</option>`
+    ).join("");
+  }
+
+  // Confetti fires every time. The written message is rarer: always at a
+  // milestone, otherwise a roll of the dice, so it stays a surprise.
+  function messageFor(count) {
+    if (MILESTONES[count]) return MILESTONES[count];
+    if (Math.random() < 0.28) return CHEERS[Math.floor(Math.random() * CHEERS.length)];
+    return null;
+  }
+
+  function completeSession() {
+    if (isCompleting) return;
+    isCompleting = true;
+    state.history.push({
+      id: genId(),
+      sessionIndex: state.index,
+      date: new Date().toISOString(),
+      mode: shortMode ? "short" : "full",
+      note: noteDraft.trim()
+    });
+    save();
+
+    launchConfetti();
+    const message = messageFor(state.history.length);
+    showToast(message || "Logged.", message ? 2100 : 1100);
+
+    render();
+    setTimeout(() => { isCompleting = false; advance(); }, message ? 2300 : 1300);
+  }
+
+  function advance() {
+    state.index += 1;
+    checkedSet = new Set();
+    expandedSet = new Set();
+    noteDraft = "";
+    shortMode = false;
+    save();
+    render();
+  }
+
+  function reducedMotion() {
+    return window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  }
+
+  function showToast(text, hold) {
+    const toast = document.createElement("div");
+    toast.textContent = text;
+    toast.style.position = "fixed";
+    toast.style.left = "50%";
+    toast.style.bottom = "calc(env(safe-area-inset-bottom, 0px) + 32px)";
+    toast.style.transform = "translateX(-50%)";
+    toast.style.maxWidth = "min(420px, calc(100vw - 40px))";
+    toast.style.textAlign = "center";
+    toast.style.background = "#123A56";
+    toast.style.color = "#EAF1F5";
+    toast.style.padding = "13px 22px";
+    toast.style.borderRadius = "14px";
+    toast.style.fontFamily = '"Iowan Old Style", Palatino, Georgia, serif';
+    toast.style.fontSize = "16.5px";
+    toast.style.lineHeight = "1.4";
+    toast.style.boxShadow = "0 6px 20px rgba(18,41,58,0.28)";
+    toast.style.zIndex = "310";
+    const reduce = reducedMotion();
+    toast.style.opacity = reduce ? "1" : "0";
+    if (!reduce) toast.style.transition = "opacity 0.25s ease";
+    document.body.appendChild(toast);
+    if (!reduce) requestAnimationFrame(() => { toast.style.opacity = "1"; });
+    setTimeout(() => { toast.style.opacity = "0"; }, hold);
+    setTimeout(() => { toast.remove(); }, hold + 400);
+  }
+
+  function launchConfetti() {
+    if (reducedMotion()) return;
+    const colors = ["#2C6E9B", "#123A56", "#4E92BC", "#9CC5DC", "#2E8C9E", "#D8EAF3"];
+    const container = document.createElement("div");
+    container.style.position = "fixed";
+    container.style.inset = "0";
+    container.style.pointerEvents = "none";
+    container.style.zIndex = "300";
+    container.style.overflow = "hidden";
+    document.body.appendChild(container);
+
+    const originX = window.innerWidth * (0.2 + Math.random() * 0.6);
+    const originY = window.innerHeight * (0.2 + Math.random() * 0.26);
+
+    const pieces = [];
+    for (let i = 0; i < 90; i++) {
+      const el = document.createElement("div");
+      const size = 6 + Math.random() * 6;
+      el.style.position = "fixed";
+      el.style.left = "0px";
+      el.style.top = "0px";
+      el.style.width = size + "px";
+      el.style.height = (size * 0.4) + "px";
+      el.style.background = colors[Math.floor(Math.random() * colors.length)];
+      el.style.borderRadius = "1px";
+      el.style.willChange = "transform, opacity";
+      container.appendChild(el);
+      pieces.push({
+        el, x: originX, y: originY,
+        vx: (Math.random() * 2 - 1) * 9,
+        vy: -(7 + Math.random() * 10),
+        rot: Math.random() * 360,
+        rotSpeed: (Math.random() * 2 - 1) * 10,
+        maxLife: 1500 + Math.random() * 900
+      });
+    }
+
+    const gravity = 0.32;
+    let startTs = null;
+    function frame(ts) {
+      if (startTs === null) startTs = ts;
+      let alive = false;
+      pieces.forEach(p => {
+        const elapsed = ts - startTs;
+        if (elapsed > p.maxLife) { p.el.style.opacity = "0"; return; }
+        alive = true;
+        p.vy += gravity;
+        p.x += p.vx;
+        p.y += p.vy;
+        p.rot += p.rotSpeed;
+        const lifeFrac = elapsed / p.maxLife;
+        p.el.style.transform = `translate(${p.x}px, ${p.y}px) rotate(${p.rot}deg)`;
+        p.el.style.opacity = lifeFrac > 0.65 ? Math.max(0, 1 - (lifeFrac - 0.65) / 0.35) : 1;
+      });
+      if (alive) requestAnimationFrame(frame); else container.remove();
+    }
+    requestAnimationFrame(frame);
+  }
+
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(state)); }
+    catch (err) { console.error("Could not save progress:", err); }
+  }
+
+  function load() {
+    try {
+      const raw = localStorage.getItem(KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (typeof parsed.index === "number" && Array.isArray(parsed.history)) state = parsed;
+      }
+    } catch (err) { console.log("Starting fresh."); }
+
+    let migrated = false;
+    state.history.forEach(h => {
+      if (!h.id) { h.id = genId(); migrated = true; }
+      if (typeof h.note !== "string") { h.note = ""; migrated = true; }
+      if (h.mode !== "short" && h.mode !== "full") { h.mode = "full"; migrated = true; }
+      if (typeof h.sessionIndex !== "number" || h.sessionIndex >= TOTAL) { h.sessionIndex = 0; migrated = true; }
+    });
+    if (migrated) save();
+
+    loaded = true;
+    render();
+  }
+
+  load();
+})();
+</script>
+</body>
+</html>
